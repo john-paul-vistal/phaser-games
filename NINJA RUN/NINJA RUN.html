@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>NINJA RUN</title>
+    <link rel="icon" href="assets/icon.png">
+    <script src="phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <script type="text/javascript">
+        var config = {
+            type: Phaser.AUTO,
+            width: 1000,
+            height: 600,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: {
+                        y: 300
+                    },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        var player;
+        var spikeGround;
+        var cursors;
+        var ncoin = 0;
+        var ndistance = 0;
+        var gameOver = false;
+        var scoreText;
+        var meters;
+
+        var game = new Phaser.Game(config);
+
+        // ******************************************************************************************************************************
+        function preload() {
+            this.load.image('background', 'assets/mountains-back.png');
+            this.load.image('background1', 'assets/mountains-mid1.png');
+            this.load.image('background2', 'assets/mountains-mid2.png');
+            this.load.image('playbtn', 'assets/play.png');
+            this.load.image('coin', 'assets/coin.png');
+            this.load.image('groundspike', 'assets/groundspike.png');
+            this.load.image('groundstrt', 'assets/platformstrt.png');
+            this.load.image('ground', 'assets/platform1.png');
+            this.load.image('gameover', 'assets/gameover.png');
+            this.load.spritesheet('dude', 'assets/ninja.png', {
+                frameWidth: 161.5,
+                frameHeight: 100
+            });
+            this.load.spritesheet('wolf', 'assets/wolf.png', {
+                frameWidth: 180.5,
+                frameHeight: 100
+            });
+        }
+        // ******************************************************************************************************************************************************
+        function create() {
+            //  Input Events
+            cursors = this.input.keyboard.createCursorKeys();
+
+            //  A moving background for our game
+            this.background1 = this.add.tileSprite(500, 230, 1000, 1000, 'background');
+            this.background2 = this.add.tileSprite(500, 400, 1000, 1000, 'background1');
+            this.background3 = this.add.tileSprite(500, 700, 1000, 1000, 'background2');
+
+            //  Here we create the groundspike.
+            var spikeGround = this.physics.add.group({
+                key: 'groundspike',
+                repeat: 100,
+                setXY: {
+                    x: 1800,
+                    y: 580,
+                    stepX: 950
+                },
+                allowGravity: false,
+                immovable: true
+            });
+            spikeGround.setVelocityX(-300);
+
+            // Start platforms
+            var movingPlatform = this.physics.add.group({
+                key: 'groundstrt',
+                repeat: 0,
+                setXY: {
+                    x: 500,
+                    y: 450,
+                },
+                allowGravity: false,
+                immovable: true
+            });
+            movingPlatform.setVelocityX(-300);
+
+
+            // Moving platforms
+            var group = this.physics.add.group({
+                key: 'ground',
+                repeat: 100,
+                setXY: {
+                    x: 2000,
+                    y: 390,
+                    stepX: 700
+                },
+                allowGravity: false,
+            });
+            group.setVelocityX(-310);
+
+
+            // The coins
+            var coin = this.physics.add.group({
+                key: 'coin',
+                repeat: 100,
+                setXY: {
+                    x: 1000,
+                    y: 160,
+                    stepX: 500
+                },
+                allowGravity: false,
+            });
+            var coin2 = this.physics.add.group({
+                key: 'coin',
+                repeat: 100,
+                setXY: {
+                    x: 1100,
+                    y: 130,
+                    stepX: 500
+                },
+                allowGravity: false,
+            });
+            var coin3 = this.physics.add.group({
+                key: 'coin',
+                repeat: 100,
+                setXY: {
+                    x: 1200,
+                    y: 160,
+                    stepX: 500
+                },
+                allowGravity: false,
+            });
+
+            coin.setVelocityX(-200);
+            coin2.setVelocityX(-200);
+            coin3.setVelocityX(-200);
+
+            // The player and its settings
+            player = this.physics.add.sprite(400, 320, 'dude');
+            player.setCollideWorldBounds(true);
+
+            //  Our player animations  running right.
+            this.anims.create({
+                key: 'right',
+                frames: this.anims.generateFrameNumbers('dude', {
+                    start: 0,
+                    end: 23
+                }),
+                frameRate: 46,
+                repeat: 1,
+            });
+            //  Our player animations  jump.
+            this.anims.create({
+                key: 'jump',
+                frames: [{
+                    key: 'dude',
+                    frame: 0
+                }],
+                frameRate: 20,
+                repeat: -1,
+            });
+
+            //  The text above
+            meters = this.add.text(16, 16, 'Distance: 0', {
+                fontSize: '24px',
+                fill: '#ffffff'
+            });
+            scoreText = this.add.text(16, 40, 'Coins: 0', {
+                fontSize: '24px',
+                fill: '#ffffff'
+            });
+            this.add.text(750, 16, 'John Paul Vistal', {
+                fontSize: '24px',
+                fill: '#ffffff',
+            });
+
+
+
+            //  Collide the player and the stars with the platforms
+            this.physics.add.collider(player, movingPlatform, distance);
+            this.physics.add.collider(player, group, distance);
+            this.physics.add.collider(spikeGround, group, remove);
+            this.physics.add.collider(group);
+            //  Checks to see if the player overlaps with any of the coin, if he does call the collectStar function
+            this.physics.add.overlap(player, coin, collectCoin, null, this);
+            this.physics.add.overlap(player, coin2, collectCoin, null, this);
+            this.physics.add.overlap(player, coin3, collectCoin, null, this);
+        }
+        // *************************************************************************************************
+        function update() {
+            if (gameOver == false) {
+                this.background1.tilePositionX += .2;
+                this.background2.tilePositionX += .5;
+                this.background3.tilePositionX += 2;
+            }
+
+
+            if (player.body.blocked.down === true) {
+                player.setTint(0xff0000);
+                this.add.image(500, 280, 'gameover');
+                this.physics.pause();
+                gameOver = true;
+            }
+
+
+            if (cursors.right.isDown && player.body.touching.down) {
+                player.setVelocityX(0);
+                player.anims.play('right', true);
+            } else if (cursors.left.isDown && player.body.touching.down) {
+                player.setVelocityX(0);
+                player.anims.play('right', true);
+            } else if (player.body.touching.down) {
+                player.setVelocityX(0);
+                player.anims.play('right', true);
+            }
+
+            if (cursors.space.isDown && player.body.touching.down) {
+                player.setVelocityY(-300);
+                player.anims.play('jump', true);
+            }
+        }
+
+        function distance() {
+            ndistance += 1;
+            meters.setText('Distance: ' + ndistance);
+        }
+
+        function remove(spikeGround, group) {
+            group.disableBody(true, true);
+        }
+
+        function collectCoin(player, coin) {
+            coin.disableBody(true, true);
+            ncoin += 10;
+            scoreText.setText('Coins: ' + ncoin);
+        }
+    </script>
+
+</body>
+
+</html>

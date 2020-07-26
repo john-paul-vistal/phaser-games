@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>SPACE PONG</title>
+    <script src="phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <script type="text/javascript">
+        var config = {
+            type: Phaser.AUTO,
+            width: 1000,
+            height: 600,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: {
+                        y: 300
+                    },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+        var keeper1;
+        var keeper2;
+        var keyA;
+        var keyQ;
+        var spike1;
+        var spike2;
+        var button;
+        var playertxt;
+        var scoreText1;
+        var scoreText2;
+        var score1 = 0;
+        var score2 = 0;
+        var ball;
+        var game = new Phaser.Game(config);
+
+        var ready;
+        var set;
+        var go;
+        var over
+
+        function preload() {
+            this.load.image('background', 'assets/background.png');
+            this.load.image('keeper', 'assets/keeper.png');
+            this.load.image('spikes1', 'assets/spikes right.png');
+            this.load.image('spikes2', 'assets/spikes left.png');
+            this.load.image('ready', 'assets/ready.png');
+            this.load.image('set', 'assets/set.png');
+            this.load.image('smash', 'assets/smash.png');
+            this.load.image('ball', 'assets/ball.png');
+            this.load.image('gameover1', 'assets/gameover1.png');
+            this.load.image('gameover2', 'assets/gameover2.png');
+        }
+
+        function create() {
+            // check what button is clicked
+            button = this.input.keyboard.createCursorKeys();
+            keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+            keyQ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+
+
+            this.add.image(500, 300, 'background');
+
+            over = this.physics.add.staticGroup();
+
+            spike1 = this.physics.add.staticGroup();
+            spike1.create(1000, 290, 'spikes1');
+            spike2 = this.physics.add.staticGroup();
+            spike2.create(1, 290, 'spikes2');
+
+
+            keeper1 = this.physics.add.sprite(100, 300, 'keeper');
+            keeper1.setCollideWorldBounds(true);
+            keeper1.body.setAllowGravity(false);
+            keeper1.setImmovable(true);
+
+            keeper2 = this.physics.add.sprite(900, 300, 'keeper');
+            keeper2.setCollideWorldBounds(true);
+            keeper2.body.setAllowGravity(false)
+            keeper2.setImmovable(true);
+
+            ball = this.physics.add.group({
+                key: 'ball',
+                setXY: {
+                    x: 500,
+                    y: 300,
+                },
+                allowGravity: false,
+            });
+
+            ball.children.iterate(function(child) {
+                child.setTint(getRandomColor());
+                var randomStart = Math.random() < 0.5 ? -350 : 350;
+                var randomY = Phaser.Math.Between(-200, 200);
+                child.setCollideWorldBounds(true);
+                child.setBounce(1.09);
+                setTimeout(() => {
+                    child.setVelocity(randomStart, randomY);
+                }, 3000);
+            });
+
+
+            playertxt = this.add.text(380, 5, 'Player 1', {
+                fontSize: '20px',
+                fill: '#ffffff'
+            });
+            scoreText1 = this.add.text(380, 30, 'Score: 0', {
+                fontSize: '20px',
+                fill: '#ffffff'
+            });
+
+            playertxt = this.add.text(525, 5, 'Player 2', {
+                fontSize: '20px',
+                fill: '#ffffff'
+            });
+            scoreText2 = this.add.text(525, 30, 'Score: 0', {
+                fontSize: '20px',
+                fill: '#ffffff'
+            });
+
+            ready = this.physics.add.sprite(510, 120, 'ready');
+            ready.setCollideWorldBounds(true);
+            ready.body.setAllowGravity(false)
+            ready.setImmovable(true);
+            setTimeout(() => {
+                ready.disableBody(true, true)
+                set = this.physics.add.sprite(510, 120, 'set');
+                set.setCollideWorldBounds(true);
+                set.body.setAllowGravity(false)
+                set.setImmovable(true);
+                setTimeout(() => {
+                    set.disableBody(true, true)
+                    go = this.physics.add.sprite(510, 120, 'smash');
+                    go.setCollideWorldBounds(true);
+                    go.body.setAllowGravity(false)
+                    go.setImmovable(true);
+                    setTimeout(() => {
+                        go.disableBody(true, true)
+                    }, 1000);
+                }, 1000);
+            }, 1000);
+
+
+            this.physics.add.collider(keeper1, ball, collide);
+            this.physics.add.collider(keeper2, ball, collide);
+            this.physics.add.collider(spike1, ball, removeRight);
+            this.physics.add.collider(spike2, ball, removeLeft);
+
+        }
+
+        function update() {
+            if (keyQ.isDown) {
+                keeper1.y -= 10;
+            } else if (keyA.isDown) {
+                keeper1.y += 10;
+            }
+
+            if (score1 == 20 || score2 == 20) {
+                if (score1 == 20) {
+                    over.create(500, 300, 'gameover2');
+                } else if (score2 == 20) {
+                    over.create(500, 300, 'gameover1');
+                } else {}
+                this.physics.pause();
+            }
+
+            if (button.up.isDown) {
+                keeper2.y -= 10;
+            } else if (button.down.isDown) {
+                keeper2.y += 10;
+            }
+
+        }
+
+        function collide(keeper, ball) {
+            ball.setTint(getRandomColor());
+            keeper.setTint(getRandomColor());
+        }
+
+        function removeRight(spike, ball) {
+            ball.disableBody(true, true);
+            score1 += 1;
+            scoreText1.setText('Score: ' + score1);
+            keeper1.y = 300;
+            keeper2.y = 300;
+            ball.enableBody(true, 170, 300, true, true);
+
+            var randomY = Phaser.Math.Between(-200, 200);
+
+            // Promt the players to get ready
+            ready.enableBody(true, 510, 120, true, true);
+            setTimeout(() => {
+                ready.disableBody(true, true);
+                set.enableBody(true, 510, 120, true, true);
+                setTimeout(() => {
+                    set.disableBody(true, true);
+                    go.enableBody(true, 510, 120, true, true);
+                    setTimeout(() => {
+                        go.disableBody(true, true);
+                    }, 1000);
+                }, 1000);
+            }, 1000);
+
+            // Release the ball in 3 sec
+            setTimeout(() => {
+                ball.setVelocity(350, randomY);
+            }, 3000);
+        }
+
+        function removeLeft(spike, ball) {
+            ball.disableBody(true, true);
+            score2 += 1;
+            scoreText2.setText('Score: ' + score2);
+            keeper1.y = 300;
+            keeper2.y = 300;
+            ball.enableBody(true, 827, 300, true, true);
+
+            var randomY = Phaser.Math.Between(-200, 200);
+
+            // Promt the players to get ready
+            ready.enableBody(true, 510, 120, true, true);
+            setTimeout(() => {
+                ready.disableBody(true, true);
+                set.enableBody(true, 510, 120, true, true);
+                setTimeout(() => {
+                    set.disableBody(true, true);
+                    go.enableBody(true, 510, 120, true, true);
+                    setTimeout(() => {
+                        go.disableBody(true, true);
+                    }, 1000);
+                }, 1000);
+            }, 1000);
+
+            // Release the ball in 3 sec
+            setTimeout(() => {
+                ball.setVelocity(-350, randomY);
+            }, 3000);
+        }
+
+
+        function getRandomColor() {
+            //  var letters = '0123456789ABCDEF';
+            var color = ['0x00fbff', '0xeeff00', '0x42f5e3',
+                '0x006eff', '0xff00ff', '0x00ff22',
+                '0xffc800', '0x77ff00', '0xff4000', '0x9dff00', '0xff007b',
+                '0x6a47f5', '0xf2ff00', '0xff5100', '0xe00bd2', '0xff82c3'
+            ];
+            var index = Math.floor(Math.random() * 14);
+            setcolor = color[index]
+            return setcolor;
+        }
+    </script>
+
+
+
+</body>
+
+</html>
